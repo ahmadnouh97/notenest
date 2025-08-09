@@ -17,7 +17,7 @@
 
 ### 2. Note Management
 - **Local storage**: SQLite (Android) / IndexedDB (Web) for offline access
-- **Cloud sync**: Firebase Firestore or Supabase for cross-device synchronization
+ - **Cloud sync**: Supabase (Free tier) for cross-device synchronization
 - Tag-based organization
 - Rich note metadata (URL, title, summary, tags, creation date)
 - **Real-time sync**: Changes sync automatically across devices
@@ -42,10 +42,10 @@
 
 ### Backend & Storage
 - **Local Storage**: SQLite (Android) via `expo-sqlite` / IndexedDB (Web) via web shim
-- **Cloud Database**: Firebase Firestore or Supabase for cross-device sync
-- **Storage abstraction layer** for unified API across platforms
-- **Sync Engine**: Real-time synchronization with conflict resolution
-- **Offline Support**: Local-first architecture with background sync
+ - **Cloud Database**: Supabase (Free tier: Postgres + Auth + Realtime + Edge Functions) for cross-device sync
+ - **Storage abstraction layer** for unified API across platforms
+ - **Sync Engine**: Real-time synchronization with conflict resolution (Supabase Realtime)
+ - **Offline Support**: Local-first architecture with background sync
 
 ### AI Integration
 - **OpenAI API** integration:
@@ -58,28 +58,41 @@
 -- Local SQLite/IndexedDB tables
 -- Notes table
 CREATE TABLE notes (
-  id TEXT PRIMARY KEY, -- UUID for cross-device sync
+  id TEXT PRIMARY KEY, -- UUID v7 for cross-device sync
   url TEXT NOT NULL,
   title TEXT,
   summary TEXT,
   tags TEXT, -- JSON array as string
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  sync_status TEXT DEFAULT 'synced' -- 'synced', 'pending', 'conflict'
+  sync_status TEXT DEFAULT 'synced', -- 'synced' | 'pending' | 'conflict'
+  version INTEGER DEFAULT 1,
+  is_deleted INTEGER DEFAULT 0,
+  deleted_at TEXT
 );
 
--- Embeddings table
+-- Embeddings table (local)
 CREATE TABLE embeddings (
   note_id TEXT PRIMARY KEY,
   vector TEXT NOT NULL, -- JSON array as string
   FOREIGN KEY (note_id) REFERENCES notes(id)
 );
+CREATE INDEX IF NOT EXISTS idx_notes_updated_at ON notes(updated_at);
+CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at);
 
--- Cloud Database Schema (Firestore/Supabase)
--- Collection: notes
--- Document fields: id, url, title, summary, tags, created_at, updated_at, user_id
--- Collection: embeddings
--- Document fields: note_id, vector, user_id
+-- Cloud Database Schema (Supabase Postgres)
+-- Table: profiles (managed by Supabase Auth)
+-- id (uuid, PK)
+
+-- Table: notes
+-- id (uuid, PK), user_id (uuid, FK -> auth.users.id), url, title, summary, tags jsonb,
+-- created_at timestamptz, updated_at timestamptz, version int, is_deleted boolean, deleted_at timestamptz
+
+-- Table: embeddings
+-- note_id (uuid, PK, FK -> notes.id), vector vector(1536) -- using pgvector extension
+
+-- RLS Policies (per-user isolation)
+-- enable row level security on notes, embeddings; allow user = auth.uid()
 ```
 
 ## 📱 User Interface Design
@@ -101,25 +114,24 @@ CREATE TABLE embeddings (
 - Chat history display
 - AI-generated responses with note references
 
-## ☁️ Cloud Sync Architecture
+## ☁️ Cloud Sync Architecture (Free Tier)
 
 ### Sync Strategy
 - **Local-First Architecture**: All operations happen locally first, then sync to cloud
-- **Real-time Sync**: Changes sync automatically across devices using Firebase/Supabase
+- **Real-time Sync**: Changes sync automatically across devices using Supabase Realtime
 - **Offline Support**: App works offline, syncs when connection is restored
 - **Conflict Resolution**: Handles simultaneous edits from multiple devices
 
-### Authentication & Security
-- **User Accounts**: Email/password or social login (Google, Apple)
+- **User Accounts**: Email/password (Supabase Auth). Social logins optional; free tier supports Google/others with limits.
 - **Data Isolation**: Each user's notes are completely private
 - **Secure API**: All cloud communication uses HTTPS and authentication tokens
 - **Data Encryption**: Sensitive data encrypted in transit and at rest
 
 ### Sync Engine Components
-- **Sync Queue**: Manages pending sync operations
-- **Conflict Resolver**: Handles simultaneous edits (last-write-wins with user notification)
-- **Background Sync**: Automatic sync when app is in background
-- **Delta Sync**: Only sync changed data, not entire database
+- **Sync Queue**: Manages pending sync operations (local queue persisted in SQLite/AsyncStorage)
+- **Conflict Resolver**: Handles simultaneous edits (last-write-wins with version checks + user notification)
+- **Background Sync**: Automatic sync when app regains focus/connectivity; Android via expo-background-fetch
+- **Delta Sync**: Only sync changed data using `updated_at > last_sync_at`
 
 ## 🔄 Data Flow Architecture
 
@@ -139,14 +151,16 @@ CREATE TABLE embeddings (
 3. **Search local database first** (fast response)
 4. **Sync with cloud** if needed (background)
 5. Perform semantic similarity search
+   - Offline: client-side cosine similarity against local embeddings
+   - Online: optionally query Supabase (pgvector) for server-side similarity
 6. Filter and display results
 
 ### Chat Flow
 1. User enters natural language query
 2. Generate query embedding
 3. **Search both local and cloud databases**
-4. Retrieve relevant notes via semantic search
-5. Send query + context to OpenAI API
+4. Retrieve relevant notes via semantic search (client-side or via Supabase pgvector)
+5. Route OpenAI calls through a Supabase Edge Function (do not expose API key in client)
 6. Display AI response
 
 ## 📁 Project Structure
@@ -188,8 +202,8 @@ notenest/
 - [ ] Semantic search implementation
 - [ ] Basic note CRUD operations
 - [ ] Storage layer testing
-- [ ] **Cloud database setup** (Firebase/Supabase)
-- [ ] **User authentication system**
+ - [ ] **Cloud database setup** (Supabase Free tier)
+ - [ ] **User authentication system** (Supabase Auth)
 
 ### Phase 3: User Interface (Week 5-6)
 - [ ] Main screen implementation
@@ -229,7 +243,7 @@ notenest/
 
 ## 🛠️ Development Tools & Dependencies
 
-### Core Dependencies
+### Core Dependencies (all free-tier compatible except OpenAI)
 ```json
 {
   "expo": "^50.0.0",
@@ -239,7 +253,7 @@ notenest/
   "openai": "^4.0.0",
   "react-native-vector-icons": "^10.0.0",
   "@react-native-async-storage/async-storage": "^1.21.0",
-  "firebase": "^10.7.0",
+  "@supabase/supabase-js": "^2.43.0",
   "expo-auth-session": "^5.4.0",
   "expo-crypto": "^12.8.0"
 }
