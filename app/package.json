@@ -1,0 +1,36 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~5.0.4",
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "@supabase/supabase-js": "^2.54.0",
+    "expo": "~53.0.20",
+    "expo-auth-session": "^6.2.1",
+    "expo-crypto": "^14.1.5",
+    "expo-sqlite": "^15.2.14",
+    "expo-status-bar": "~2.2.3",
+    "openai": "^5.12.2",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native": "0.79.5",
+    "react-native-web": "^0.20.0",
+    "wa-sqlite": "^1.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "~19.0.10",
+    "@types/react-native": "^0.72.8",
+    "eslint": "^9.33.0",
+    "prettier": "^3.6.2",
+    "typescript": "~5.8.3"
+  },
+  "private": true
+}
