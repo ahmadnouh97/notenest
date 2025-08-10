@@ -25,19 +25,19 @@ Note on hosting: keep the Flutter Web app on Vercel; deploy the FastAPI backend 
 ---
 
 ### M1 — Supabase setup (pgvector schema)
-- [ ] Create `supabase/schema.sql` with the SQL from `PLAN.md` (extensions, table, trigger, indexes, RLS)
+- [x] Create `supabase/schema.sql` with the SQL from `PLAN.md` (extensions, table, trigger, indexes, RLS)
   - Acceptance: running in Supabase SQL editor completes without errors
 
-- [ ] Validate pgvector and trigram extensions enabled in the Supabase project
+- [x] Validate pgvector and trigram extensions enabled in the Supabase project
   - Acceptance: `vector` and `pg_trgm` show as enabled in the dashboard
 
-- [ ] Create a tiny seed script (optional) to insert 2–3 example notes (without embeddings)
+- [x] Create a tiny seed script (optional) to insert 2–3 example notes (without embeddings)
   - Acceptance: records visible in `public.notes`
 
 ---
 
 ### M2 — Backend foundation (FastAPI)
-- [ ] Scaffold FastAPI app in `backend/`
+- [x] Scaffold FastAPI app in `backend/`
   - Files: `main.py`, `settings.py`, `db.py`, `models.py`, `routers/` directory
   - Dependencies (`backend/requirements.txt`):
     - `fastapi`, `uvicorn[standard]`, `pydantic-settings`, `python-dotenv`
@@ -46,21 +46,21 @@ Note on hosting: keep the Flutter Web app on Vercel; deploy the FastAPI backend 
     - `orjson` (fast JSON), `loguru` (logging, optional)
   - Acceptance: `uvicorn main:app --reload` starts locally
 
-- [ ] Implement settings and secrets loading (`settings.py`)
+- [x] Implement settings and secrets loading (`settings.py`)
   - Read `.env`; strongly type config (Supabase URL/key, allowed origins, optional embedding defaults)
   - Acceptance: invalid/missing env fails fast with clear error
 
-- [ ] Database connection pool (`db.py`)
+- [x] Database connection pool (`db.py`)
   - `asyncpg.create_pool()` using `SUPABASE_DB_URL` (Postgres connection string)
   - Ensure SSL enabled (`ssl=require`); connection tested on startup
   - Acceptance: startup connects; simple health query works
 
-- [ ] CORS middleware
+- [x] CORS middleware
   - `fastapi.middleware.cors` with exact allowlist from `ALLOWED_ORIGINS`
   - Allow: `GET, POST, PUT, DELETE, OPTIONS`; headers: `Content-Type, Authorization`
   - Acceptance: preflight `OPTIONS` returns 204; origins restricted to allowlist
 
-- [ ] Health endpoint
+- [x] Health endpoint
   - `GET /api/health` returns `{ ok: true, version }`
   - Acceptance: returns 200; included in CI smoke test
 
