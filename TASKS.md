@@ -7,14 +7,14 @@ Note on hosting: keep the Flutter Web app on Vercel; deploy the FastAPI backend 
 ---
 
 ### M0 — Repo bootstrap and project scaffolding
-- [ ] Create mono-repo structure
+- [x] Create mono-repo structure
   - `frontend/` (Flutter app)
   - `backend/` (FastAPI service)
   - `supabase/` (SQL schema, migration scripts)
   - `.gitignore`, `README.md`, `.env.example` at repo root
   - Acceptance: repo cloned fresh yields clear structure; `README` points to setup steps
 
-- [ ] Add `.env.example` with placeholders
+- [x] Add `.env.example` with placeholders
   - `SUPABASE_DB_URL=postgresql://...` (Supabase database connection string)
   - `SUPABASE_REST_URL=https://<project>.supabase.co` (optional if using REST/RPC)
   - `SUPABASE_SERVICE_ROLE=...` (optional if using REST/RPC)
