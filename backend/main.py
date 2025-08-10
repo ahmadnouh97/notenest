@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import db_pool
+from .middleware import RateLimitMiddleware
 from .routers.health import router as health_router
 from .settings import get_settings
 
@@ -39,6 +40,14 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
+)
+
+# Simple per-IP rate limiting for hot endpoints
+app.add_middleware(
+    RateLimitMiddleware,
+    capacity=30,
+    refill_per_second=1.0,
+    protected_prefixes=["/api/search", "/api/chat", "/api/notes"],
 )
 
 
