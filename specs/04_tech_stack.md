@@ -1,29 +1,37 @@
-## **Updated Tech Stack for Single Codebase**
+## Tech Stack (Python backend)
 
 ### Frontend
 
-* **React Native** with **React Native Web**
-* **Expo** for development, builds, and deployment
-* **TypeScript** for shared types across platforms
-* Component library compatible with both (e.g., **Tamágui**, **Dripsy**, or plain RN styles)
+- **FastAPI** + **Jinja2** templates (server-rendered)
+- **HTMX** for progressive enhancement (minimal JS)
+- **Tailwind CSS** for styling
+
+### Backend (Python)
+
+- **FastAPI** for REST endpoints: `summarize`, `rephrase`, `embed`, `chat`
+- **Uvicorn** ASGI server
+- **Supabase** (Postgres + Auth + Realtime) free tier
+- **pgvector** extension for vector embeddings
+- **OpenAI** Python SDK
+- **python-dotenv** for environment configuration
 
 ### Storage
 
-* **SQLite** (via `expo-sqlite` on Android)
-* **IndexedDB** (via `expo-sqlite` web shim or a polyfill like `react-native-async-storage` web adapter)
-* Create a **storage abstraction layer** so both platforms use the same API
-
-### AI
-
-* OpenAI API (gpt-4o-mini for summaries/rephrasing, text-embedding-3-small for vectors)
+- **Supabase Postgres** with RLS; `note_embeddings` table storing vectors
 
 ### Search
 
-* Cosine similarity implemented in JavaScript
-* On web: run in memory or IndexedDB
-* On Android: run via SQLite
+- Local cosine similarity (fallback)
+- Cloud vector similarity using Supabase `pgvector`
 
-### OS Target
+### Auth
 
-* **Android**
-* **Web** (PWA-ready so it can be installed like an app on desktop/mobile browsers)
+- **Supabase Auth** (email/password, social)
+
+### Tooling
+
+- pytest, mypy, ruff
+
+### Targets
+
+- **Web** (PWA-ready)

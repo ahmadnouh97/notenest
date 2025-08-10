@@ -3,10 +3,10 @@
 [User Shares Link]  
        │  
        ▼  
-[Share Intent Handler in App]  
+[Web Form Submission]  
        │  URL + Title
        ▼  
-[LLM API Call: Summarize Link]  
+[FastAPI `/summarize`: Summarize Link]  
        │  Summary (optional tags)
        ▼  
 [Editable Summary Screen]  
@@ -16,12 +16,12 @@
        │  
        ▼  
  ┌──────────────────────────────────────────┐
- │      Local SQLite Database (Notes)       │
- │------------------------------------------│
- │ id | url | title | summary | tags | date │
+  │      Supabase Postgres (Notes)           │
+  │------------------------------------------│
+  │ id | user_id | url | title | summary | tags | created_at |
  └──────────────────────────────────────────┘  
        │  
-       ├──► [Embedding Generation (LLM or local model)]  
+        ├──► [Embedding Generation via FastAPI `/embed` (OpenAI) or local fallback]  
        │         │  
        │         ▼  
        │   ┌─────────────────────┐  
@@ -32,8 +32,8 @@
        ▼  
 [Main Screen: View & Search Notes]  
        │  
-       ├── Keyword search → DB query  
-       └── Semantic search → Embedding similarity match  
+        ├── Keyword search → Postgres full-text / ILIKE  
+        └── Semantic search → pgvector cosine similarity  
               ▼  
         Filtered Note List  
 
@@ -45,7 +45,7 @@
        │  
        ├──► Semantic match in Embeddings Table → Retrieve top N notes  
        │  
-       └──► Send (Query + Relevant Notes) → LLM API  
+        └──► Send (Query + Relevant Notes) → FastAPI `/chat` (OpenAI)  
                   │  
                   ▼  
           AI-generated answer in chat  

@@ -4,8 +4,8 @@
 
 **NoteNest** is a personal link-saving app with a built-in AI assistant that helps users capture links from their phone, summarize or describe them, and find them later using semantic search or by chatting with their notes.
 
-**Target Platforms:** Android (primary) + Web (PWA)
-**Architecture:** Single codebase using React Native + React Native Web
+**Target Platforms:** Web (PWA)
+**Architecture:** Python FastAPI monolith with server-rendered UI (Jinja2/HTMX) and Supabase
 
 ## 🎯 Core Features (MVP)
 
@@ -34,52 +34,31 @@
 
 ## 🏗️ Technical Architecture
 
-### Frontend Stack
-- **React Native** with **React Native Web** for cross-platform compatibility
-- **Expo** for development, builds, and deployment
-- **TypeScript** for type safety and shared types
-- **Tamágui** or **Dripsy** for cross-platform UI components
+### UI Stack (All Python)
+- **FastAPI** + **Jinja2** templates for server-rendered pages
+- **HTMX** for progressive enhancement (minimal JS)
+- **Tailwind CSS** (via CDN or prebuilt) for styling
 
-### Backend & Storage
-- **Local Storage**: SQLite (Android) via `expo-sqlite` / IndexedDB (Web) via web shim
-- **Cloud Database**: Firebase Firestore or Supabase for cross-device sync
-- **Storage abstraction layer** for unified API across platforms
-- **Sync Engine**: Real-time synchronization with conflict resolution
-- **Offline Support**: Local-first architecture with background sync
+### Backend & Storage (Python)
+- **Database**: Supabase (Postgres) free tier; RLS enabled
+- **Vector Storage**: Supabase `pgvector` for embeddings
+- **Backend**: **FastAPI** for views and API endpoints (summarize, rephrase, embed, chat)
+- **Background tasks**: FastAPI BackgroundTasks / APScheduler (optional)
+- Note: Web app (PWA) prioritizes online usage; offline is limited to cached pages
 
 ### AI Integration
-- **OpenAI API** integration:
+- **OpenAI API** via Python SDK:
   - `gpt-4o-mini` for summaries and rephrasing
   - `text-embedding-3-small` for vector embeddings
-- **Local semantic search** using cosine similarity
+- **Semantic search** in Postgres (`pgvector`) with cosine similarity
 
 ### Data Models
 ```sql
--- Local SQLite/IndexedDB tables
--- Notes table
-CREATE TABLE notes (
-  id TEXT PRIMARY KEY, -- UUID for cross-device sync
-  url TEXT NOT NULL,
-  title TEXT,
-  summary TEXT,
-  tags TEXT, -- JSON array as string
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  sync_status TEXT DEFAULT 'synced' -- 'synced', 'pending', 'conflict'
-);
-
--- Embeddings table
-CREATE TABLE embeddings (
-  note_id TEXT PRIMARY KEY,
-  vector TEXT NOT NULL, -- JSON array as string
-  FOREIGN KEY (note_id) REFERENCES notes(id)
-);
-
--- Cloud Database Schema (Firestore/Supabase)
--- Collection: notes
--- Document fields: id, url, title, summary, tags, created_at, updated_at, user_id
--- Collection: embeddings
--- Document fields: note_id, vector, user_id
+-- Supabase (Postgres) schema
+-- Table: notes (RLS enabled)
+-- Columns: id UUID PK, user_id UUID, url TEXT, title TEXT, summary TEXT, tags TEXT (JSON string), created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ
+-- Table: note_embeddings (RLS enabled)
+-- Columns: note_id UUID PK FK -> notes(id), embedding VECTOR
 ```
 
 ## 📱 User Interface Design
@@ -104,16 +83,16 @@ CREATE TABLE embeddings (
 ## ☁️ Cloud Sync Architecture
 
 ### Sync Strategy
-- **Local-First Architecture**: All operations happen locally first, then sync to cloud
-- **Real-time Sync**: Changes sync automatically across devices using Firebase/Supabase
-- **Offline Support**: App works offline, syncs when connection is restored
-- **Conflict Resolution**: Handles simultaneous edits from multiple devices
+- Web app operates online-first
+- **Realtime updates** via Supabase Realtime
+- **Conflict Resolution**: Last-write-wins; audit fields retained
 
 ### Authentication & Security
-- **User Accounts**: Email/password or social login (Google, Apple)
-- **Data Isolation**: Each user's notes are completely private
-- **Secure API**: All cloud communication uses HTTPS and authentication tokens
-- **Data Encryption**: Sensitive data encrypted in transit and at rest
+- **User Accounts**: Supabase Auth (email/password, social login)
+- **Data Isolation**: RLS policies per `user_id`
+- **Secure API**: HTTPS + JWT
+- **Secrets**: Loaded from `.env` on server; never committed
+- **Data Encryption**: In transit and at rest
 
 ### Sync Engine Components
 - **Sync Queue**: Manages pending sync operations
@@ -123,137 +102,110 @@ CREATE TABLE embeddings (
 
 ## 🔄 Data Flow Architecture
 
-### Link Capture Flow
-1. User shares link → Share intent handler
-2. Extract URL + title
-3. Call OpenAI API for summarization
-4. Present editable summary screen
-5. Save to local database
-6. Generate and store embeddings
-7. **Queue for cloud sync** (background process)
-8. **Upload to cloud database** when online
+### Link Capture Flow (Web)
+1. User pastes a link in the web app form
+2. Server POST to `/summarize` (FastAPI → OpenAI)
+3. Render edit form with AI summary + suggested tags
+4. On save, insert into Supabase `notes`
+5. Generate embedding via `/embed` and upsert into `note_embeddings`
 
 ### Search Flow
 1. User enters search query
-2. Generate query embedding
-3. **Search local database first** (fast response)
-4. **Sync with cloud** if needed (background)
-5. Perform semantic similarity search
-6. Filter and display results
+2. Server calls `/embed` to generate vector
+3. Query Supabase `note_embeddings` with cosine similarity
+4. Join `notes` for display
 
 ### Chat Flow
 1. User enters natural language query
 2. Generate query embedding
-3. **Search both local and cloud databases**
-4. Retrieve relevant notes via semantic search
-5. Send query + context to OpenAI API
-6. Display AI response
+3. Retrieve top-K notes via vector search
+4. Send query + notes context to `/chat` (OpenAI)
+5. Stream/display AI response
 
 ## 📁 Project Structure
 
 ```
 notenest/
-├── src/
-│   ├── components/          # Reusable UI components
-│   ├── screens/             # Screen components
-│   ├── services/            # Business logic and API calls
-│   ├── database/            # Storage abstraction layer
-│   ├── sync/                # Cloud sync engine
-│   ├── auth/                # User authentication
-│   ├── ai/                  # AI integration and embeddings
-│   ├── types/               # TypeScript type definitions
-│   ├── utils/               # Helper functions
-│   └── navigation/          # Navigation configuration
-├── assets/                  # Images, fonts, etc.
-├── docs/                    # Documentation
-├── specs/                   # Project specifications
-├── app.json                 # Expo configuration
-├── package.json             # Dependencies
-└── tsconfig.json            # TypeScript configuration
+├── server/                   # Python FastAPI app
+│   ├── app/
+│   │   ├── api/              # summarize, embed, chat, notes CRUD
+│   │   ├── views/            # Jinja2 routes
+│   │   ├── templates/        # Jinja2 templates
+│   │   ├── static/           # CSS (Tailwind), images
+│   │   ├── services/         # openai, supabase clients
+│   │   ├── models/           # pydantic schemas
+│   │   └── core/             # config, auth
+│   ├── tests/
+│   ├── pyproject.toml or requirements.txt
+│   └── README.md
+├── specs/
+└── docs/
 ```
 
 ## 🚀 Implementation Phases
 
 ### Phase 1: Foundation & Setup (Week 1-2)
-- [ ] Project initialization with Expo
-- [ ] TypeScript configuration
-- [ ] Basic project structure setup
-- [ ] Dependencies installation
-- [ ] Storage abstraction layer implementation
-- [ ] Basic database schema setup
+- [ ] Initialize FastAPI project
+- [ ] Setup Supabase project (tables, RLS, pgvector)
+- [ ] Jinja2 templates + Tailwind styling scaffold
+- [ ] Environment config via `.env`
 
 ### Phase 2: Core Infrastructure (Week 3-4)
-- [ ] OpenAI API integration
-- [ ] Embedding generation and storage
-- [ ] Semantic search implementation
-- [ ] Basic note CRUD operations
-- [ ] Storage layer testing
-- [ ] **Cloud database setup** (Firebase/Supabase)
-- [ ] **User authentication system**
+- [ ] OpenAI integration (summarize, rephrase, embed)
+- [ ] Note CRUD views and APIs
+- [ ] Vector search in Supabase (pgvector)
+- [ ] Supabase Auth integration (email/password)
+- [ ] Unit and integration tests (pytest)
 
 ### Phase 3: User Interface (Week 5-6)
 - [ ] Main screen implementation
 - [ ] Note editing interface
 - [ ] Search functionality UI
-- [ ] Basic navigation setup
-- [ ] Cross-platform UI testing
+- [ ] Navigation + layout
 
 ### Phase 4: AI Features (Week 7-8)
 - [ ] Link summarization integration
 - [ ] AI rephrasing functionality
 - [ ] Chat interface implementation
 - [ ] Context-aware AI responses
-- [ ] AI feature testing
-- [ ] **Cloud sync engine implementation**
-- [ ] **Conflict resolution system**
+- [ ] AI feature testing (pytest)
 
-### Phase 5: Android Integration (Week 9-10)
-- [ ] Share intent handler implementation
-- [ ] Android-specific optimizations
-- [ ] SQLite integration testing
-- [ ] Android build and testing
+### Phase 5: PWA (Week 9-10)
+- [ ] Add PWA manifest and service worker (basic caching)
+- [ ] Installability testing on Android/desktop browsers
 
-### Phase 6: Web PWA (Week 11-12)
-- [ ] React Native Web integration
-- [ ] IndexedDB implementation
-- [ ] PWA configuration
-- [ ] Web-specific testing
-- [ ] Cross-platform compatibility testing
+### Phase 6: Performance & UX (Week 11-12)
+- [ ] Pagination/lazy loading
+- [ ] Query optimization
+- [ ] Accessibility and UX refinements
 
 ### Phase 7: Polish & Testing (Week 13-14)
-- [ ] UI/UX refinements
-- [ ] Performance optimization
 - [ ] Error handling improvements
 - [ ] Comprehensive testing
 - [ ] Bug fixes and refinements
 
 ## 🛠️ Development Tools & Dependencies
 
-### Core Dependencies
-```json
-{
-  "expo": "^50.0.0",
-  "react-native": "0.73.0",
-  "react-native-web": "^0.19.0",
-  "expo-sqlite": "^13.0.0",
-  "openai": "^4.0.0",
-  "react-native-vector-icons": "^10.0.0",
-  "@react-native-async-storage/async-storage": "^1.21.0",
-  "firebase": "^10.7.0",
-  "expo-auth-session": "^5.4.0",
-  "expo-crypto": "^12.8.0"
-}
+### Core Dependencies (Python only)
+```txt
+fastapi
+uvicorn
+jinja2
+python-multipart
+openai
+supabase
+python-dotenv
+httpx
+numpy
+pgvector
+itsdangerous
 ```
 
 ### Development Dependencies
-```json
-{
-  "typescript": "^5.0.0",
-  "@types/react": "^18.0.0",
-  "@types/react-native": "^0.73.0",
-  "eslint": "^8.0.0",
-  "prettier": "^3.0.0"
-}
+```txt
+pytest
+ruff
+mypy
 ```
 
 ## 🧪 Testing Strategy
@@ -262,18 +214,17 @@ notenest/
 - Component testing with React Native Testing Library
 - Service layer testing
 - Database operations testing
-- AI integration testing
+- AI integration testing (FastAPI + OpenAI client)
 
 ### Integration Testing
 - Cross-platform compatibility testing
 - Storage layer testing
-- API integration testing
+- API integration testing (FastAPI endpoints)
 - End-to-end user flow testing
 
 ### Platform-Specific Testing
-- Android share intent testing
 - Web PWA functionality testing
-- Performance testing on both platforms
+- Performance testing
 
 ## 📊 Success Metrics
 
@@ -342,5 +293,5 @@ notenest/
 
 **Total Estimated Timeline:** 16 weeks (with cloud sync)
 **Team Size:** 1-2 developers
-**Technology Stack:** React Native + Expo + OpenAI API
+**Technology Stack:** Python FastAPI + Jinja2/HTMX + Supabase + OpenAI API
 **Target Platforms:** Android (primary) + Web (PWA)
