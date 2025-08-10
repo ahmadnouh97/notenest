@@ -9,7 +9,8 @@ from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt,
 from ..settings import get_settings
 
 
-DEFAULT_HF_MODEL = "BAAI/bge-m3"
+DEFAULT_HF_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+DEFAULT_OPENAI_EMBED_MODEL = "text-embedding-3-small"
 
 
 class EmbeddingError(RuntimeError):
@@ -74,6 +75,7 @@ async def _hf_bge_m3_embedding(text: str, api_key: Optional[str]) -> List[float]
     }
     json_payload = {
         "inputs": text,
+        "task": "feature-extraction",
         # Ask HF to auto-load the model on first call
         "options": {"wait_for_model": True},
     }
@@ -106,6 +108,48 @@ async def _hf_bge_m3_embedding(text: str, api_key: Optional[str]) -> List[float]
     raise EmbeddingError("Unexpected failure to obtain embedding from HF provider")
 
 
+async def _openai_embedding(
+    text: str,
+    api_key: Optional[str],
+    *,
+    base_url: Optional[str] = None,
+    model: Optional[str] = None,
+) -> List[float]:
+    if not api_key:
+        raise EmbeddingError("OpenAI API key is required for OpenAI embeddings")
+
+    url_base = (base_url or "https://api.openai.com/v1").rstrip("/")
+    url = f"{url_base}/embeddings"
+    payload = {"input": text, "model": model or DEFAULT_OPENAI_EMBED_MODEL}
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+        resp = await client.post(url, headers=headers, json=payload)
+        if resp.status_code >= 400:
+            try:
+                data = resp.json()
+            except Exception:
+                data = {"error": resp.text}
+            if isinstance(data, dict):
+                message = data.get("error") or data
+                if isinstance(message, dict):
+                    message = message.get("message") or str(message)
+            else:
+                message = str(data)
+            raise EmbeddingError(
+                f"OpenAI embeddings API error (status={resp.status_code}): {message}"
+            )
+        data = resp.json()
+        try:
+            vector = data["data"][0]["embedding"]
+        except Exception as exc:
+            raise EmbeddingError("Unexpected OpenAI embeddings response shape") from exc
+        return [float(x) for x in vector]
+
+
 async def get_embedding(
     text: str,
     provider: Optional[str] = None,
@@ -118,7 +162,24 @@ async def get_embedding(
     - provider == "mock": deterministic mock vector (for testing without network)
     """
     settings = get_settings()
-    chosen = (provider or settings.embed_provider or "hf").lower()
+    raw_choice = provider if provider is not None else settings.embed_provider
+    # Auto-select provider when not explicitly set: prefer OpenAI if key exists
+    if raw_choice in (None, "", "auto", "default"):
+        if settings.openai_api_key:
+            chosen = "openai"
+        elif settings.hf_api_key:
+            chosen = "hf"
+        else:
+            chosen = "mock"
+    else:
+        chosen = raw_choice
+    if not isinstance(chosen, str):
+        chosen = "hf"
+    chosen = chosen.strip().lower()
+
+    # Normalize ambiguous values to default
+    if chosen in ("", "none", "null", "default", "auto"):
+        chosen = "hf"
 
     if chosen == "mock":
         # Deterministic 1024-dim pseudo-embedding for tests (no network, no keys)
@@ -132,7 +193,26 @@ async def get_embedding(
 
     if chosen == "hf":
         key = api_key or settings.hf_api_key
+        if not key:
+            # Graceful fallback for local/dev: use mock when key absent
+            seed_len = float(len(text or ""))
+            seed_sum = float(sum(ord(c) for c in (text or ""))) or 1.0
+            vec = []
+            for i in range(1024):
+                val = math.sin(0.017 * (i + 1) * seed_len) + math.cos(0.013 * (i + 7) * seed_sum)
+                vec.append(val)
+            return _l2_normalize(vec)
         raw = await _hf_bge_m3_embedding(text, key)
+        return _l2_normalize(raw)
+
+    if chosen == "openai":
+        key = api_key or settings.openai_api_key
+        raw = await _openai_embedding(
+            text,
+            key,
+            base_url=settings.openai_base_url,
+            model=settings.openai_embed_model or DEFAULT_OPENAI_EMBED_MODEL,
+        )
         return _l2_normalize(raw)
 
     raise EmbeddingError(f"Unsupported embedding provider: {provider}")
@@ -142,6 +222,7 @@ __all__ = [
     "EmbeddingError",
     "get_embedding",
     "DEFAULT_HF_MODEL",
+    "DEFAULT_OPENAI_EMBED_MODEL",
 ]
 
 

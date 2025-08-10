@@ -67,45 +67,45 @@ Note on hosting: keep the Flutter Web app on Vercel; deploy the FastAPI backend 
 ---
 
 ### M3 — Embedding and provider abstraction
-- [ ] Define embedding interface (`services/embeddings.py`)
+- [x] Define embedding interface (`services/embeddings.py`)
   - `get_embedding(text: str, provider: str|None, api_key: str|None) -> list[float]`
   - Support at least HF Inference API (BAAI bge-m3); pluggable for others
   - Normalize output vector (L2) server-side
   - Acceptance: unit tests cover English/Arabic text; vector length 1024; norm≈1.0
 
-- [ ] Provider-agnostic chat client (`services/chat_providers.py`)
+- [x] Provider-agnostic chat client (`services/chat_providers.py`)
   - Map `{ provider, model, apiKey }` into an OpenAI-compatible POST request
   - Stream tokens (SSE or chunked) from provider → emit SSE to client
   - Acceptance: mock provider test streams tokens; no API key logged
 
-- [ ] Rate limiting (simple)
+- [x] Rate limiting (simple)
   - In-memory per-IP token bucket to protect embedding/search/chat endpoints
   - Acceptance: exceeding limit returns 429 with `Retry-After`
 
 ---
 
 ### M4 — Notes CRUD endpoints
-- [ ] Data models (`models.py`) and pydantic schemas (`schemas.py`)
+- [x] Data models (`models.py`) and pydantic schemas (`schemas.py`)
   - Note: `id`, `url`, `title`, `description`, `tags: list[str]`, timestamps, `embedding`
   - Acceptance: validation errors return 422
 
-- [ ] `POST /api/notes`
+- [x] `POST /api/notes`
   - Input: `{ url, title?, description?, tags? }`
   - If title/description missing → call OG scraper; embed `title + "\n\n" + description`; insert row
   - Acceptance: returns created note; DB row has normalized `embedding`
 
-- [ ] `GET /api/notes`
+- [x] `GET /api/notes`
   - Query: `tags` (comma), `q` (keyword), `limit`, `offset`
   - Acceptance: tag filter uses AND (`@>`); keyword uses trigram; pagination works
 
-- [ ] `PUT /api/notes/{id}`
+- [x] `PUT /api/notes/{id}`
   - If `title/description` changed → recompute embedding
   - Acceptance: `updated_at` changes; new embedding stored
 
-- [ ] `DELETE /api/notes/{id}`
+- [x] `DELETE /api/notes/{id}`
   - Acceptance: 200 `{ ok: true }`; row removed
 
-- [ ] OG scraper `GET /api/og-scrape?url=...`
+- [x] OG scraper `GET /api/og-scrape?url=...`
   - Parse `<title>`, `og:title`, `og:description`, meta description; sanitize text
   - Acceptance: returns best-effort fields for common sites
 

@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     # Optional embedding defaults
     embed_provider: Optional[str] = Field(default=None, alias="EMBED_PROVIDER")
     hf_api_key: Optional[str] = Field(default=None, alias="HF_API_KEY")
+    # OpenAI embeddings configuration
+    openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
+    openai_base_url: Optional[str] = Field(default=None, alias="OPENAI_BASE_URL")
+    openai_embed_model: Optional[str] = Field(default="text-embedding-3-small", alias="OPENAI_EMBED_MODEL")
+    # Target embedding dimension for DB column (pgvector), used to fit vectors
+    embed_dimension: int = Field(default=1024, alias="EMBED_DIMENSION")
 
     @classmethod
     def from_environ(cls) -> "Settings":

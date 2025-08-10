@@ -10,6 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .db import db_pool
 from .middleware import RateLimitMiddleware
 from .routers.health import router as health_router
+from .routers.notes import router as notes_router
+from .routers.og import router as og_router
 from .settings import get_settings
 
 
@@ -63,6 +65,8 @@ async def _shutdown() -> None:
 
 # Routers
 app.include_router(health_router)
+app.include_router(notes_router)
+app.include_router(og_router)
 
 
 if __name__ == "__main__":  # pragma: no cover
