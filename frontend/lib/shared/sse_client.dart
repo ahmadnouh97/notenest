@@ -26,7 +26,10 @@ class SseClient {
         if (line.startsWith('event:')) {
           eventName = line.substring(6).trim();
         } else if (line.startsWith('data:')) {
-          final d = line.substring(5).trim();
+          // Do not trim spaces from data; leading spaces are meaningful tokens
+          final d = line.startsWith('data: ')
+              ? line.substring(6)
+              : line.substring(5);
           data = data.isEmpty ? d : '$data\n$d';
         } else if (line.isEmpty) {
           // dispatch

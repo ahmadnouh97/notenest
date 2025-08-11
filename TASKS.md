@@ -157,11 +157,11 @@ Note on hosting: keep the Flutter Web app on Vercel; deploy the FastAPI backend 
 ---
 
 ### M7 — Share-to-app (Android) and Web PWA Share Target
-- [ ] Android: intent filter in `AndroidManifest.xml` for `SEND text/plain`
+- [x] Android: intent filter in `AndroidManifest.xml` for `SEND text/plain`
   - Integrate `receive_sharing_intent` to capture URL/text → navigate to `/add?url=...`
   - Acceptance: sharing from Chrome/Twitter/etc. opens add screen with prefilled URL
 
-- [ ] Web: PWA share target in `web/manifest.json`
+- [x] Web: PWA share target in `web/manifest.json`
   - Add share target mapping `{ title, text, url }` to `/add`
   - Acceptance: sharing in Chrome desktop/mobile opens PWA `/add` with fields prefilled
 
