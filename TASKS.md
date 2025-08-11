@@ -112,12 +112,12 @@ Note on hosting: keep the Flutter Web app on Vercel; deploy the FastAPI backend 
 ---
 
 ### M5 — Search and RAG chat
-- [ ] `POST /api/search`
+- [x] `POST /api/search`
   - Body: `{ query, tags?, topK?, hybridWeight? }`
   - Compute query embedding; SQL orders by cosine distance with optional hybrid trigram boost
   - Acceptance: returns `[ { note, score } ]` ordered by relevance
 
-- [ ] `POST /api/chat` (SSE)
+- [x] `POST /api/chat` (SSE)
   - Body: `{ messages, topK?, tags?, provider, model, apiKey? }`
   - Embed latest user message; retrieve topK notes; craft prompt with numbered citations
   - Stream tokens to client via `sse-starlette` `EventSourceResponse`

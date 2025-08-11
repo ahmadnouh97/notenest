@@ -12,6 +12,7 @@ from .middleware import RateLimitMiddleware
 from .routers.health import router as health_router
 from .routers.notes import router as notes_router
 from .routers.og import router as og_router
+from .routers.search import router as search_router
 from .settings import get_settings
 
 
@@ -67,6 +68,7 @@ async def _shutdown() -> None:
 app.include_router(health_router)
 app.include_router(notes_router)
 app.include_router(og_router)
+app.include_router(search_router)
 
 
 if __name__ == "__main__":  # pragma: no cover
