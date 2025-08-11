@@ -178,9 +178,15 @@ async def rag_chat(payload: ChatRequest):
     for m in payload.messages:
         chat_messages.append(ChatMessage(role=m.role, content=m.content))
 
-    provider = (payload.provider or "mock").lower()
-    model = payload.model or "dummy"
+    provider = (payload.provider or "openai").lower()
+    model = payload.model or "gpt-4o-mini"
+    # Prefer client-supplied key; otherwise use server default per provider
     api_key = payload.apiKey
+    if not api_key:
+        if provider == "openai" and settings.openai_api_key:
+            api_key = settings.openai_api_key
+        elif provider == "openrouter" and settings.openrouter_api_key:
+            api_key = settings.openrouter_api_key
 
     async def event_generator() -> AsyncIterator[Dict[str, str] | str]:
         try:

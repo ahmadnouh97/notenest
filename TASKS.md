@@ -126,31 +126,31 @@ Note on hosting: keep the Flutter Web app on Vercel; deploy the FastAPI backend 
 ---
 
 ### M6 — Flutter app (frontend)
-- [ ] Scaffold Flutter project in `frontend/`
-  - Add packages: `hooks_riverpod`, `go_router`, `dio`, `flutter_secure_storage`, `shared_preferences`, `receive_sharing_intent`, `url_launcher`, `intl`
+- [x] Scaffold Flutter project in `frontend/`
+  - Add packages: `hooks_riverpod`, `go_router`, `dio`, `flutter_secure_storage`, `shared_preferences`, `url_launcher`, `intl`
   - Env config: `BACKEND_BASE_URL`
   - Acceptance: app builds for Android and Web locally
 
-- [ ] App architecture
+- [x] App architecture
   - Create feature folders: `notes/`, `chat/`, `settings/`, `shared/`
   - Data models and API clients (with `dio` interceptors, timeouts, error mapping)
   - Acceptance: compile-time clean; basic navigation works
 
-- [ ] Notes list & search
+- [x] Notes list & search
   - Search bar (debounced), tag chips (multi-select AND), list with title/domain/tags
-  - Swipe to delete; tap to edit
+  - Swipe to delete; tap to edit; multi-select bulk delete
   - Acceptance: list reflects CRUD ops; search + tags filter correctly
 
-- [ ] Add/Edit note screen (`/add`)
+- [x] Add/Edit note screen (`/add`)
   - Fields: url, title, description, tags (create-on-type)
-  - Prefill from share target (web query params and Android intent)
+  - Prefill from share target (web query params). Android share will be implemented in M7.
   - Acceptance: create/update triggers backend embedding; UI shows results
 
-- [ ] Chat screen
+- [x] Chat screen
   - Provider/model selector; API key stored locally; stream rendering with citations
-  - Acceptance: can switch providers/models; streaming stable; citation chips open note
+  - Acceptance: can switch providers/models; streaming stable; citation chips open source URLs
 
-- [ ] Settings screen
+- [x] Settings screen
   - Enter and locally persist provider, apiKey, model; test connection button
   - Acceptance: saved across sessions; never uploaded to backend
 

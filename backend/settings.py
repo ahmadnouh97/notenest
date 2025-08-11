@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
     openai_base_url: Optional[str] = Field(default=None, alias="OPENAI_BASE_URL")
     openai_embed_model: Optional[str] = Field(default="text-embedding-3-small", alias="OPENAI_EMBED_MODEL")
+    # Chat provider keys (server-side default/fallback; never exposed)
+    openrouter_api_key: Optional[str] = Field(default=None, alias="OPENROUTER_API_KEY")
     # Target embedding dimension for DB column (pgvector), used to fit vectors
     embed_dimension: int = Field(default=1024, alias="EMBED_DIMENSION")
 
