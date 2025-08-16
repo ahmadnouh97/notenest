@@ -7,6 +7,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import 'app_router.dart';
 import 'shared/providers.dart';
+import 'shared/theme.dart';
 
 void main() {
   runApp(const ProviderScope(child: NotenestApp()));
@@ -42,7 +43,9 @@ class _NotenestAppState extends ConsumerState<NotenestApp> {
       );
 
       // Handle the case where the app was launched via a share intent
-      ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> items) async {
+      ReceiveSharingIntent.instance.getInitialMedia().then((
+        List<SharedMediaFile> items,
+      ) async {
         if (_handledInitialShare) return;
         _handledInitialShare = true;
         if (items.isNotEmpty) {
@@ -58,10 +61,7 @@ class _NotenestAppState extends ConsumerState<NotenestApp> {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'notenest',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        useMaterial3: true,
-      ),
+      theme: createAppTheme(),
       routerConfig: _router,
     );
   }
@@ -87,7 +87,9 @@ class _NotenestAppState extends ConsumerState<NotenestApp> {
     // Fallback: try to extract a URL from text
     url ??= text != null ? _extractFirstUrl(text) : null;
     final titleOrText = text ?? '';
-    final encodedTitle = Uri.encodeComponent(titleOrText.length <= 200 ? titleOrText : titleOrText.substring(0, 200));
+    final encodedTitle = Uri.encodeComponent(
+      titleOrText.length <= 200 ? titleOrText : titleOrText.substring(0, 200),
+    );
     if (url != null && url.isNotEmpty) {
       final encodedUrl = Uri.encodeComponent(url);
       _router.push('/add?url=$encodedUrl&text=$encodedTitle');

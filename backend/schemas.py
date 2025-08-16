@@ -62,9 +62,8 @@ class ChatRequest(BaseModel):
     messages: List[ChatMessageIn]
     topK: Optional[int] = 5
     tags: Optional[List[str]] = None
-    provider: Optional[str] = "mock"
-    model: Optional[str] = "dummy"
-    apiKey: Optional[str] = None
+    provider: Optional[str] = "groq"
+    model: Optional[str] = "openai/gpt-oss-120b"
 
     @field_validator("tags")
     @classmethod

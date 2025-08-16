@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import AsyncIterator, Dict, Iterable, List, Optional
 
 import httpx
+from groq import AsyncGroq
 
 
 class ChatProviderError(RuntimeError):
@@ -90,6 +91,42 @@ async def _openai_compatible_stream(
                     continue
 
 
+async def _groq_stream(
+    api_key: str,
+    model: str,
+    messages: List[ChatMessage],
+) -> AsyncIterator[str]:
+    """Streams content tokens from Groq API using the official client."""
+    if not api_key:
+        raise ChatProviderError("API key required for Groq provider")
+
+    client = AsyncGroq(api_key=api_key)
+    
+    try:
+        # Convert our ChatMessage format to Groq's expected format
+        groq_messages = [{"role": msg.role, "content": msg.content} for msg in messages]
+        
+        completion = await client.chat.completions.create(
+            model=model,
+            messages=groq_messages,
+            temperature=1,
+            max_completion_tokens=8192,
+            top_p=1,
+            reasoning_effort="medium",
+            stream=True,
+            stop=None
+        )
+
+        async for chunk in completion:
+            if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+                
+    except Exception as exc:
+        raise ChatProviderError(f"Groq API error: {exc}")
+    finally:
+        await client.close()
+
+
 async def stream_chat_tokens(
     provider: str,
     model: str,
@@ -129,6 +166,15 @@ async def stream_chat_tokens(
         base_url = "https://api.openai.com"
         async for token in _openai_compatible_stream(
             base_url=base_url,
+            api_key=api_key or "",
+            model=model,
+            messages=messages,
+        ):
+            yield token
+        return
+
+    if name == "groq":
+        async for token in _groq_stream(
             api_key=api_key or "",
             model=model,
             messages=messages,

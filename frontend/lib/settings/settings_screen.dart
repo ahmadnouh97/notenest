@@ -14,7 +14,6 @@ class SettingsScreen extends HookConsumerWidget {
 
     final providerCtrl = useTextEditingController(text: state.provider);
     final modelCtrl = useTextEditingController(text: state.model);
-    final apiKeyCtrl = useTextEditingController(text: state.apiKey);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -24,22 +23,22 @@ class SettingsScreen extends HookConsumerWidget {
           children: [
             TextField(
               controller: providerCtrl,
-              decoration: const InputDecoration(labelText: 'Provider', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Provider',
+                border: OutlineInputBorder(),
+              ),
               onChanged: controller.setProvider,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: modelCtrl,
-              decoration: const InputDecoration(labelText: 'Model', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Model',
+                border: OutlineInputBorder(),
+              ),
               onChanged: controller.setModel,
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: apiKeyCtrl,
-              decoration: const InputDecoration(labelText: 'API Key', border: OutlineInputBorder()),
-              onChanged: controller.setApiKey,
-              obscureText: true,
-            ),
+
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -47,7 +46,6 @@ class SettingsScreen extends HookConsumerWidget {
                 onPressed: () async {
                   await controller.setProvider(providerCtrl.text.trim());
                   await controller.setModel(modelCtrl.text.trim());
-                  await controller.setApiKey(apiKeyCtrl.text.trim());
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Settings saved')),
@@ -66,9 +64,15 @@ class SettingsScreen extends HookConsumerWidget {
                   final messenger = ScaffoldMessenger.of(context);
                   // Minimal mock test; backend health could be called here
                   if (providerCtrl.text.isNotEmpty) {
-                    messenger.showSnackBar(const SnackBar(content: Text('Test: OK (mock)')));
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Test: OK (mock)')),
+                    );
                   } else {
-                    messenger.showSnackBar(const SnackBar(content: Text('Test: Configure provider first')));
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Test: Configure provider first'),
+                      ),
+                    );
                   }
                 },
                 label: const Text('Test connection'),
@@ -80,5 +84,3 @@ class SettingsScreen extends HookConsumerWidget {
     );
   }
 }
-
-
