@@ -122,16 +122,17 @@ async def list_notes(
             conditions.append(f"tags @> ${len(params) + 1}::text[]")
             params.append(tag_list)
 
-    # Trigram keyword search on combined title+description
+    # Simple keyword search on combined title+description using ILIKE
     order_by = "updated_at desc"
     if q:
+        # Use ILIKE for case-insensitive search - works without extensions
+        search_term = f"%{q}%"
         conditions.append(
-            f"(coalesce(title,'' ) || ' ' || coalesce(description,'')) % ${len(params) + 1}"
+            f"(coalesce(title,'') ILIKE ${len(params) + 1} OR coalesce(description,'') ILIKE ${len(params) + 1} OR coalesce(url,'') ILIKE ${len(params) + 1})"
         )
-        params.append(q)
-        order_by = (
-            f"similarity((coalesce(title,'' ) || ' ' || coalesce(description,'')), ${len(params)}) desc, updated_at desc"
-        )
+        params.append(search_term)
+        # For now, keep simple order by updated_at - we can add ranking later if needed
+        order_by = "updated_at desc"
 
     where_clause = f" where {' and '.join(conditions)}" if conditions else ""
     sql = (

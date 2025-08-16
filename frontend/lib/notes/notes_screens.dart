@@ -18,8 +18,11 @@ class NotesListScreen extends HookConsumerWidget {
 
     final controller = useTextEditingController(text: filter.query);
     final debouncer = useMemoized(
-      () => SearchDebouncer(onValue: (value) => setFilter.state = filter.copyWith(query: value)),
-      [filter, setFilter],
+      () => SearchDebouncer(
+        onValue: (value) =>
+            setFilter.state = setFilter.state.copyWith(query: value),
+      ),
+      [setFilter],
     );
     useEffect(() {
       return debouncer.dispose;
@@ -50,7 +53,9 @@ class NotesListScreen extends HookConsumerWidget {
         await Future.wait(selectedIds.value.map(repo.deleteNote));
         selectedIds.value = {};
         ref.invalidate(notesListProvider);
-        messenger.showSnackBar(const SnackBar(content: Text('Deleted selected notes')));
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Deleted selected notes')),
+        );
       } catch (e) {
         messenger.showSnackBar(SnackBar(content: Text('Delete failed: $e')));
       } finally {
@@ -80,7 +85,9 @@ class NotesListScreen extends HookConsumerWidget {
               onPressed: isProcessing.value
                   ? null
                   : () {
-                      final allVisibleIds = currentNotes.map((e) => e.id).toSet();
+                      final allVisibleIds = currentNotes
+                          .map((e) => e.id)
+                          .toSet();
                       final next = Set<String>.from(selectedIds.value);
                       if (next.length == allVisibleIds.length) {
                         selectedIds.value = {};
@@ -173,7 +180,9 @@ class NotesListScreen extends HookConsumerWidget {
                   final selected = selectedIds.value.contains(n.id);
                   return Dismissible(
                     key: ValueKey(n.id),
-                    direction: isSelecting ? DismissDirection.none : DismissDirection.endToStart,
+                    direction: isSelecting
+                        ? DismissDirection.none
+                        : DismissDirection.endToStart,
                     background: Container(
                       color: Colors.red,
                       alignment: Alignment.centerRight,
@@ -187,8 +196,15 @@ class NotesListScreen extends HookConsumerWidget {
                               title: const Text('Delete note?'),
                               content: Text(n.title.isEmpty ? n.url : n.title),
                               actions: [
-                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                                FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Delete'),
+                                ),
                               ],
                             ),
                           ) ??
@@ -202,14 +218,24 @@ class NotesListScreen extends HookConsumerWidget {
                       leading: isSelecting
                           ? Checkbox(
                               value: selected,
-                              onChanged: isProcessing.value ? null : (_) => toggleSelection(n.id),
+                              onChanged: isProcessing.value
+                                  ? null
+                                  : (_) => toggleSelection(n.id),
                             )
                           : null,
-                      title: Text(n.title.isEmpty ? n.url : n.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      title: Text(
+                        n.title.isEmpty ? n.url : n.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_domainOf(n.url), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text(
+                            _domainOf(n.url),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           if (n.tags.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
@@ -217,7 +243,12 @@ class NotesListScreen extends HookConsumerWidget {
                                 spacing: 6,
                                 runSpacing: -8,
                                 children: n.tags
-                                    .map((t) => Chip(label: Text(t), visualDensity: VisualDensity.compact))
+                                    .map(
+                                      (t) => Chip(
+                                        label: Text(t),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    )
                                     .toList(),
                               ),
                             ),
@@ -263,14 +294,28 @@ class AddEditNoteScreen extends HookConsumerWidget {
   final String? prefillUrl;
   final String? prefillTitle;
   final String? prefillDescription;
-  const AddEditNoteScreen({super.key, this.existing, this.prefillUrl, this.prefillTitle, this.prefillDescription});
+  const AddEditNoteScreen({
+    super.key,
+    this.existing,
+    this.prefillUrl,
+    this.prefillTitle,
+    this.prefillDescription,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final title = useTextEditingController(text: existing?.title ?? prefillTitle ?? '');
-    final url = useTextEditingController(text: existing?.url ?? prefillUrl ?? '');
-    final description = useTextEditingController(text: existing?.description ?? prefillDescription ?? '');
-    final tagText = useTextEditingController(text: existing?.tags.join(',') ?? '');
+    final title = useTextEditingController(
+      text: existing?.title ?? prefillTitle ?? '',
+    );
+    final url = useTextEditingController(
+      text: existing?.url ?? prefillUrl ?? '',
+    );
+    final description = useTextEditingController(
+      text: existing?.description ?? prefillDescription ?? '',
+    );
+    final tagText = useTextEditingController(
+      text: existing?.tags.join(',') ?? '',
+    );
 
     // Android share intent prefill (best-effort; requires intent filter configured later)
     // Web prefill handled via router query params; Android share handled in M7.
@@ -282,14 +327,20 @@ class AddEditNoteScreen extends HookConsumerWidget {
           .where((e) => e.isNotEmpty)
           .toList();
       if (existing == null) {
-        await ref.read(notesRepositoryProvider).createNote(
+        await ref
+            .read(notesRepositoryProvider)
+            .createNote(
               url: url.text.trim(),
               title: title.text.trim().isEmpty ? null : title.text.trim(),
-              description: description.text.trim().isEmpty ? null : description.text.trim(),
+              description: description.text.trim().isEmpty
+                  ? null
+                  : description.text.trim(),
               tags: tags.isEmpty ? null : tags,
             );
       } else {
-        await ref.read(notesRepositoryProvider).updateNote(
+        await ref
+            .read(notesRepositoryProvider)
+            .updateNote(
               existing!.id,
               url: url.text.trim(),
               title: title.text.trim(),
@@ -309,23 +360,35 @@ class AddEditNoteScreen extends HookConsumerWidget {
           children: [
             TextField(
               controller: url,
-              decoration: const InputDecoration(labelText: 'URL', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'URL',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: title,
-              decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Title',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: description,
               maxLines: 6,
-              decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: tagText,
-              decoration: const InputDecoration(labelText: 'Tags (comma separated)', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Tags (comma separated)',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -341,5 +404,3 @@ class AddEditNoteScreen extends HookConsumerWidget {
     );
   }
 }
-
-
