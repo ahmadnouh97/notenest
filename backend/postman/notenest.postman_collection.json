@@ -1,0 +1,262 @@
+{
+  "info": {
+    "_postman_id": "00000000-0000-0000-0000-000000000001",
+    "name": "notenest-backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for notenest FastAPI backend"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "chatProvider", "value": "mock" },
+    { "key": "chatModel", "value": "dummy" },
+    { "key": "apiKey", "value": "" },
+    { "key": "noteId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "health"]
+        },
+        "description": "Health check"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('ok is true', function () { pm.expect(pm.response.json().ok).to.be.true; });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notes",
+      "item": [
+        {
+          "name": "Create Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/article\",\n  \"title\": \"Example Title\",\n  \"description\": \"Some description about the article.\",\n  \"tags\": [\"tagA\", \"tagB\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notes"]
+            },
+            "description": "Create a note; server will compute embeddings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var data = pm.response.json();",
+                  "pm.test('Has id', function () { pm.expect(data.id).to.be.a('string'); });",
+                  "pm.collectionVariables.set('noteId', data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Notes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notes?limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notes"],
+              "query": [
+                { "key": "limit", "value": "10" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "List notes with optional tags or q parameters"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Array returned', function () { pm.expect(Array.isArray(pm.response.json())).to.be.true; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Note",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Title\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notes/{{noteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notes", "{{noteId}}"]
+            },
+            "description": "Update note title/description/tags; recomputes embeddings if needed"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated title applied', function () { pm.expect(pm.response.json().title).to.eql('Updated Title'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Note",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notes/{{noteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notes", "{{noteId}}"]
+            },
+            "description": "Delete a note by id"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('ok true', function () { pm.expect(pm.response.json().ok).to.be.true; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "OG Scraper",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/og-scrape?url=https%3A%2F%2Fexample.com",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "og-scrape"],
+          "query": [
+            { "key": "url", "value": "https://example.com" }
+          ]
+        },
+        "description": "Fetch OpenGraph metadata for a URL"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Has title/description', function () { var d = pm.response.json(); pm.expect(d).to.have.property('title'); pm.expect(d).to.have.property('description'); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Search & Chat",
+      "item": [
+        {
+          "name": "Search Notes",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"vector search\",\n  \"tags\": [\"tagA\"],\n  \"topK\": 5,\n  \"hybridWeight\": 0.7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "search"]
+            },
+            "description": "Hybrid search (pgvector cosine + trigram) with optional tags"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Returns array of {note, score}', function () { var d = pm.response.json(); pm.expect(Array.isArray(d)).to.be.true; if (d.length) { pm.expect(d[0]).to.have.property('note'); pm.expect(d[0]).to.have.property('score'); } });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "RAG Chat (SSE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "text/event-stream" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Summarize my notes about vectors\" }\n  ],\n  \"topK\": 5,\n  \"tags\": [],\n  \"provider\": \"{{chatProvider}}\",\n  \"model\": \"{{chatModel}}\",\n  \"apiKey\": \"{{apiKey}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat"]
+            },
+            "description": "Streams tokens via Server-Sent Events. Note: Postman may buffer SSE; consider using curl for real-time streaming."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+

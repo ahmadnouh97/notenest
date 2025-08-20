@@ -1,0 +1,43 @@
+# Environment files
+.env
+.env.*
+!.env.example
+backend/.env
+supabase/.env
+frontend/.env
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+.pytest_cache/
+.coverage
+
+# IDE / Editors
+.vscode/
+.idea/
+*.code-workspace
+
+# OS / misc
+.DS_Store
+Thumbs.db
+
+# Node / Flutter (future-proof)
+node_modules/
+build/
+.dart_tool/
+frontend/build/
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/.pub-cache/
+frontend/.pub/
+
+# Logs
+*.log
+temp/
